@@ -47,6 +47,9 @@ def process_image(
         "Sketch": "sketch",
         "Cartoon": "cartoon",
         "Blur": "blur",
+        "Auto Enhance": "auto_enhance",
+        "Vivid Colors": "vivid",
+        "Vintage": "vintage",
     }
 
     if filter_label == "Painting":

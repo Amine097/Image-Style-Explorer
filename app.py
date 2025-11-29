@@ -243,7 +243,18 @@ def main():
     # ---- Style selection ----
     st.markdown("### Style")
 
-    style_options = ["None", "Black & White", "Sketch", "Cartoon", "Blur", "Painting"]
+    style_options = [
+        "None",
+        "Black & White",
+        "Sketch",
+        "Cartoon",
+        "Blur",
+        "Painting",
+        "Auto Enhance",
+        "Vivid Colors",
+        "Vintage",
+    ]
+
     current_style_index = style_options.index(disc.get("filter_label", "None"))
 
     filter_label = st.selectbox(
