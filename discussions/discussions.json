@@ -1,0 +1,65 @@
+{
+  "disc_20251129-183343": {
+    "created_at": "2025-11-29 18:33",
+    "label": "Discussion 1",
+    "last_filter_label": "None",
+    "last_blur_strength": 9,
+    "last_painting_detail": 60,
+    "last_painting_color_smooth": 0.6,
+    "image_path": "discussions\\disc_20251129-183343.png"
+  },
+  "disc_20251129-183426": {
+    "created_at": "2025-11-29 18:34",
+    "label": "Discussion 2",
+    "last_filter_label": "Sketch",
+    "last_blur_strength": 9,
+    "last_painting_detail": 60,
+    "last_painting_color_smooth": 0.6,
+    "image_path": "discussions\\disc_20251129-183426.png"
+  },
+  "disc_20251129-183501": {
+    "created_at": "2025-11-29 18:35",
+    "label": "Discussion 3",
+    "last_filter_label": "Sketch",
+    "last_blur_strength": 9,
+    "last_painting_detail": 60,
+    "last_painting_color_smooth": 0.6,
+    "image_path": "discussions\\disc_20251129-183501.png"
+  },
+  "disc_20251129-183617": {
+    "created_at": "2025-11-29 18:36",
+    "label": "Discussion 4",
+    "last_filter_label": "Sketch",
+    "last_blur_strength": 9,
+    "last_painting_detail": 60,
+    "last_painting_color_smooth": 0.6,
+    "image_path": "discussions\\disc_20251129-183617.png"
+  },
+  "disc_20251129-183622": {
+    "created_at": "2025-11-29 18:36",
+    "label": "Discussion 5",
+    "last_filter_label": "Sketch",
+    "last_blur_strength": 9,
+    "last_painting_detail": 60,
+    "last_painting_color_smooth": 0.6,
+    "image_path": "discussions\\disc_20251129-183622.png"
+  },
+  "disc_20251129-183625": {
+    "created_at": "2025-11-29 18:36",
+    "label": "Discussion 6",
+    "last_filter_label": "Sketch",
+    "last_blur_strength": 9,
+    "last_painting_detail": 60,
+    "last_painting_color_smooth": 0.6,
+    "image_path": "discussions\\disc_20251129-183625.png"
+  },
+  "disc_20251129-183631": {
+    "created_at": "2025-11-29 18:36",
+    "label": "Discussion 7",
+    "last_filter_label": "Sketch",
+    "last_blur_strength": 9,
+    "last_painting_detail": 60,
+    "last_painting_color_smooth": 0.6,
+    "image_path": "discussions\\disc_20251129-183631.png"
+  }
+}
