@@ -1,126 +1,18 @@
+# app.py
+
 import io
 import os
 
 import streamlit as st
-from PIL import Image
 
-from styles import apply_filter, FilterName, painting
-
-
-# -------------------------------
-# Processing helpers
-# -------------------------------
-
-def resize_for_processing(image: Image.Image, max_dim: int = 800) -> Image.Image:
-    """Resize image so that the longest side is max_dim (for speed)."""
-    w, h = image.size
-    longest = max(w, h)
-    if longest <= max_dim:
-        return image
-
-    scale = max_dim / float(longest)
-    new_w = int(w * scale)
-    new_h = int(h * scale)
-    return image.resize((new_w, new_h), Image.BILINEAR)
+from pipeline.discussions import (
+    init_session_state,
+    create_new_discussion,
+    get_current_discussion,
+)
+from pipeline.processing import process_image
 
 
-@st.cache_data(ttl=3600)
-def process_image(
-    image_bytes: bytes,
-    filter_label: str,
-    blur_strength: int,
-    painting_detail: int,
-    painting_color_smooth: float,
-    max_dim: int,
-):
-    """
-    Cached image processing:
-    - rebuild PIL image from bytes
-    - resize
-    - apply chosen style
-    Returns (original_resized, styled_resized).
-    """
-    img = Image.open(io.BytesIO(image_bytes))
-    img = resize_for_processing(img, max_dim=max_dim)
-
-    label_to_name = {
-        "None": "none",
-        "Black & White": "bw",
-        "Sketch": "sketch",
-        "Cartoon": "cartoon",
-        "Blur": "blur",
-    }
-
-    if filter_label == "Painting":
-        styled = painting(
-            img,
-            sigma_s=painting_detail,
-            sigma_r=painting_color_smooth,
-        )
-    else:
-        filter_name: FilterName = label_to_name[filter_label]  # type: ignore
-        styled = apply_filter(
-            img,
-            filter_name,
-            blur_ksize=blur_strength,
-        )
-
-    return img, styled
-
-
-# -------------------------------
-# Discussion management
-# -------------------------------
-
-def create_new_discussion():
-    discussions = st.session_state["discussions"]
-    next_id = st.session_state["next_discussion_id"]
-
-    disc_id = f"disc_{next_id}"
-    st.session_state["next_discussion_id"] = next_id + 1
-
-    discussions[disc_id] = {
-        "name": f"Discussion {next_id}",
-        "image_bytes": None,
-        "orig_name": None,
-        "orig_ext": ".png",
-        "filter_label": "None",
-        "blur_strength": 9,
-        "painting_detail": 60,
-        "painting_color_smooth": 0.6,
-    }
-    st.session_state["current_discussion_id"] = disc_id
-
-
-def init_session_state():
-    if "discussions" not in st.session_state:
-        st.session_state["discussions"] = {}
-    if "next_discussion_id" not in st.session_state:
-        st.session_state["next_discussion_id"] = 1
-
-    discussions = st.session_state["discussions"]
-
-    # If no discussions at all, create the first one
-    if not discussions:
-        create_new_discussion()
-        discussions = st.session_state["discussions"]
-
-    if "current_discussion_id" not in st.session_state:
-        # pick first existing discussion
-        st.session_state["current_discussion_id"] = list(discussions.keys())[0]
-
-
-def get_current_discussion():
-    disc_id = st.session_state.get("current_discussion_id")
-    if not disc_id:
-        return None, None
-    discussions = st.session_state["discussions"]
-    return disc_id, discussions[disc_id]
-
-
-# -------------------------------
-# Streamlit app
-# -------------------------------
 
 def main():
     st.set_page_config(
@@ -129,15 +21,14 @@ def main():
         layout="wide",
     )
 
+    # ----------------- Init state -----------------
     init_session_state()
+    discussions = st.session_state["discussions"]
 
     st.title("🎨 Image Style Explorer")
     st.write("Upload an image, choose a style, and compare before vs after.")
 
-    discussions = st.session_state["discussions"]
-
-    # -------- Sidebar: quality + discussions --------
-
+    # ----------------- Sidebar -----------------
     # 1) Quality toggle
     quality_mode = st.sidebar.radio(
         "Quality mode",
@@ -148,22 +39,22 @@ def main():
 
     st.sidebar.markdown("---")
 
-    # 2) New discussion button
+    # 2) New discussion button (only if no blank exists)
     if st.sidebar.button("➕ New discussion"):
-        # Only create new if there is NO blank discussion already
         has_blank = any(d["image_bytes"] is None for d in discussions.values())
         if not has_blank:
             create_new_discussion()
+            # discussions updated via session_state
 
     # 3) Discussions list
     st.sidebar.markdown("### Discussions")
 
     disc_ids = list(discussions.keys())
+    current_id = st.session_state["current_discussion_id"]
 
     def format_discussion(did: str) -> str:
         return discussions[did]["name"]
 
-    current_id = st.session_state["current_discussion_id"]
     selected_id = st.sidebar.radio(
         "Select a discussion",
         options=disc_ids,
@@ -176,8 +67,7 @@ def main():
         st.session_state["current_discussion_id"] = selected_id
         current_id = selected_id
 
-    # -------- Main area --------
-
+    # ----------------- Main area -----------------
     current_id, disc = get_current_discussion()
     if not current_id or disc is None:
         st.info("No discussion selected.")
@@ -185,9 +75,8 @@ def main():
 
     st.subheader(disc["name"])
 
-    # ---- Upload / image handling ----
+    # ---- Upload handling ----
     if disc["image_bytes"] is None:
-        # Only show upload when no image
         st.write("Start this discussion by uploading an image.")
         uploaded_file = st.file_uploader(
             "Upload an image (PNG/JPG)",
@@ -211,7 +100,7 @@ def main():
             discussions[current_id] = disc
             st.session_state["discussions"] = discussions
 
-            # After updating state, we can just stop; next interaction will show style UI
+            # Force a clean rebuild so we go straight to the style UI
             st.rerun()
 
         return
@@ -232,7 +121,6 @@ def main():
         key=f"style_{current_id}",
     )
 
-    # Sliders per discussion
     blur_strength = disc.get("blur_strength", 9)
     painting_detail = disc.get("painting_detail", 60)
     painting_color_smooth = disc.get("painting_color_smooth", 0.6)
@@ -267,10 +155,9 @@ def main():
             key=f"paint_color_{current_id}",
         )
 
-    # Resolution based on quality mode
+    # ---- Image processing ----
     max_dim = 600 if quality_mode == "Fast" else 1200
 
-    # ---- Process image ----
     with st.spinner("Processing image..."):
         original_resized, styled_image = process_image(
             image_bytes=image_bytes,
@@ -281,7 +168,7 @@ def main():
             max_dim=max_dim,
         )
 
-    # Save latest settings
+    # Save style settings
     disc["filter_label"] = filter_label
     disc["blur_strength"] = blur_strength
     disc["painting_detail"] = painting_detail
@@ -289,7 +176,7 @@ def main():
     discussions[current_id] = disc
     st.session_state["discussions"] = discussions
 
-    # ---- Before vs after ----
+    # ---- Before vs After ----
     col1, col2 = st.columns(2)
 
     with col1:
@@ -304,7 +191,7 @@ def main():
         f"Mode: {quality_mode}. Images are processed up to {max_dim}px on the longest side."
     )
 
-    # ---- Download button ----
+    # ---- Download ----
     st.markdown("---")
     st.subheader("Download stylized image")
 
