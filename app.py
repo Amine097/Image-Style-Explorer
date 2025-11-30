@@ -5,6 +5,8 @@ import os
 
 import streamlit as st
 
+from pipeline.object_eraser import run_object_eraser_tool
+
 from pipeline import init_pipeline_state
 from pipeline.processing import process_image
 from pipeline.projects import (
@@ -502,6 +504,7 @@ def main():
         "Auto Enhance",
         "Vivid Colors",
         "Vintage",
+        "Object Eraser",
     ]
     current_style_index = style_options.index(disc.get("filter_label", "None"))
 
@@ -553,17 +556,34 @@ def main():
     # ---- Image processing ----
     max_dim = 600 if quality_mode == "Fast" else 1200
 
-    with st.spinner("Running style pipeline..."):
-        original_resized, styled_image = process_image(
-            image_bytes=image_bytes,
-            filter_label=filter_label,
-            blur_strength=blur_strength,
-            painting_detail=painting_detail,
-            painting_color_smooth=painting_color_smooth,
-            max_dim=max_dim,
-        )
+    if filter_label == "Object Eraser":
+        # Special mode: use the object eraser tool instead of the normal pipeline
+        with st.spinner("Applying object eraser..."):
+            original_resized, inpainted = run_object_eraser_tool(
+                image_bytes=image_bytes,
+                disc_id=disc_id,
+                max_dim=max_dim,
+            )
 
-    # Save style settings
+        # If user hasn't applied yet, just show original on both sides
+        if inpainted is None:
+            styled_image = original_resized
+        else:
+            styled_image = inpainted
+
+    else:
+        # Normal filter pipeline
+        with st.spinner("Running style pipeline..."):
+            original_resized, styled_image = process_image(
+                image_bytes=image_bytes,
+                filter_label=filter_label,
+                blur_strength=blur_strength,
+                painting_detail=painting_detail,
+                painting_color_smooth=painting_color_smooth,
+                max_dim=max_dim,
+            )
+
+    # Save style settings (for all modes)
     disc["filter_label"] = filter_label
     disc["blur_strength"] = blur_strength
     disc["painting_detail"] = painting_detail
