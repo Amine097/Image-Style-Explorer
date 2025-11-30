@@ -48,7 +48,7 @@ def create_new_discussion(project_id: Optional[str]) -> str:
     st.session_state["next_discussion_id"] = next_id + 1
 
     discussions[disc_id] = {
-        "name": f"Discussion {next_id}",
+        "name": f"New Discussion",
         "image_bytes": None,
         "orig_name": None,
         "orig_ext": ".png",

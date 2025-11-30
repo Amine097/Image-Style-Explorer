@@ -25,6 +25,151 @@ from pipeline.discussions import (
 )
 
 
+# ------------------------------------------------------------
+# Theming: light / dark with sci-fi blue/purple accents
+# ------------------------------------------------------------
+
+def inject_theme_css(mode: str):
+    """Inject global CSS depending on light/dark theme."""
+    if mode == "dark":
+        bg_app = "#020617"
+        bg_card = "rgba(15, 23, 42, 0.98)"
+        bg_card_muted = "rgba(15, 23, 42, 0.90)"
+        text_main = "#e5e7eb"
+        text_sub = "#9ca3af"
+        border = "rgba(148, 163, 184, 0.35)"
+        accent_blue = "#38bdf8"
+        accent_purple = "#a855f7"
+        header_grad = "radial-gradient(circle at 0 0, #1d2340, #020617 60%)"
+        app_bg_grad = (
+            "radial-gradient(circle at top, #020617 0, #020617 40%, #020617 100%)"
+        )
+    else:  # light
+        bg_app = "#f4f4fb"
+        bg_card = "#ffffff"
+        bg_card_muted = "#f9fafb"
+        text_main = "#0f172a"
+        text_sub = "#6b7280"
+        border = "rgba(148, 163, 184, 0.6)"
+        accent_blue = "#2563eb"
+        accent_purple = "#7c3aed"
+        header_grad = "linear-gradient(135deg, #eef2ff, #e0f2fe)"
+        app_bg_grad = "linear-gradient(180deg, #f4f4fb 0, #eef2ff 40%, #f9fafb 100%)"
+
+    st.markdown(
+        f"""
+        <style>
+        .stApp {{
+            background: {app_bg_grad};
+            color: {text_main};
+        }}
+
+        #MainMenu {{visibility: hidden;}}
+        footer {{visibility: hidden;}}
+
+        .main-header {{
+            padding: 0.9rem 1.2rem 1.2rem 1.2rem;
+            border-radius: 1.1rem;
+            background: {header_grad};
+            color: {text_main};
+            margin-bottom: 1.0rem;
+            border: 1px solid {border};
+            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.65);
+        }}
+        .main-header h1 {{
+            font-size: 1.9rem;
+            margin: 0 0 0.25rem 0;
+        }}
+        .main-header p {{
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin: 0;
+        }}
+
+        .pill {{
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.15rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            background: rgba(56, 189, 248, 0.10);
+            color: {accent_blue};
+        }}
+        .pill span.dot {{
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: {accent_blue};
+        }}
+
+        .card {{
+            background: {bg_card};
+            border-radius: 1rem;
+            padding: 1rem 1.25rem;
+            border: 1px solid {border};
+            margin-bottom: 1rem;
+        }}
+
+        .card-muted {{
+            background: {bg_card_muted};
+            border-radius: 0.9rem;
+            padding: 0.9rem 1.1rem;
+            border: 1px dashed {border};
+            margin-bottom: 0.9rem;
+        }}
+
+        .subtitle {{
+            font-size: 0.85rem;
+            color: {text_sub};
+        }}
+
+        .breadcrumb {{
+            font-size: 0.85rem;
+            color: {text_sub};
+        }}
+        .breadcrumb strong {{
+            color: {text_main};
+        }}
+
+        .preview-title {{
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+        }}
+
+        .download-box {{
+            background: {bg_card};
+            border-radius: 0.9rem;
+            padding: 0.85rem 1rem;
+            border: 1px solid {border};
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+        }}
+        .download-box span {{
+            font-size: 0.85rem;
+            color: {text_sub};
+        }}
+
+        section[data-testid="stSidebar"] h2 {{
+            font-size: 0.95rem !important;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: {text_sub};
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+# ------------------------------------------------------------
+# MAIN APP
+# ------------------------------------------------------------
+
 def main():
     st.set_page_config(
         page_title="Image Style Explorer",
@@ -32,9 +177,7 @@ def main():
         layout="wide",
     )
 
-    # ---------------------------------------
-    # Init pipeline state
-    # ---------------------------------------
+    # Init all state (projects + discussions)
     init_pipeline_state()
 
     projects = get_projects()
@@ -42,12 +185,56 @@ def main():
     current_project_id = get_current_project_id()
     current_discussion_id = get_current_discussion_id()
 
+    # ------------- Theme handling (session) -------------
+    if "theme_mode" not in st.session_state:
+        st.session_state["theme_mode"] = "dark"
+
+    theme_mode = st.session_state["theme_mode"]
+    inject_theme_css(theme_mode)
+
+    # ---------------------------------------
+    # Top bar: header + theme toggle
+    # ---------------------------------------
+    header_col1, header_col2 = st.columns([5, 1])
+
+    with header_col1:
+        st.markdown(
+            """
+            <div class="main-header">
+              <div style="display:flex;flex-direction:column;gap:0.45rem;">
+                <div>
+                  <h1>Image Style Explorer</h1>
+                  <p>Organise your work into projects and discussions, then experiment with visual styles on your images.</p>
+                </div>
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with header_col2:
+        st.write("")
+        st.write("")
+        dark_default = theme_mode == "dark"
+        toggled = st.toggle("Dark mode", value=dark_default, key="theme_toggle")
+        new_mode = "dark" if toggled else "light"
+        if new_mode != theme_mode:
+            st.session_state["theme_mode"] = new_mode
+            st.rerun()
+
     # ---------------------------------------
     # Handle pending project creation (name screen)
     # ---------------------------------------
     if st.session_state.get("pending_project_creation", False):
-        st.subheader("Create a new project")
-        st.write("Please choose a name for your project:")
+        st.markdown(
+            """
+            <div class="card">
+              <div class="breadcrumb"><strong>New project</strong></div>
+              <p class="subtitle">Name your project to start grouping related discussions and styles.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
         name = st.text_input(
             "Project name",
@@ -56,25 +243,23 @@ def main():
         )
         st.session_state["pending_project_name"] = name
 
-        if st.button("Create project", disabled=not name.strip()):
-            finalize_project_creation(name)
-            st.rerun()
+        cols = st.columns([1, 4])
+        with cols[0]:
+            create_disabled = not name.strip()
+            if st.button("Create project", disabled=create_disabled, use_container_width=True):
+                finalize_project_creation(name)
+                st.rerun()
 
         return  # nothing else renders until project is named
-
-    # ---------------------------------------
-    # Page header
-    # ---------------------------------------
-    st.title("🎨 Image Style Explorer")
-    st.write("Upload an image, choose a style, and compare before vs after.")
 
     # ---------------------------------------
     # SIDEBAR
     # ---------------------------------------
 
     # 1) Quality toggle
+    st.sidebar.markdown("#### Rendering mode")
     quality_mode = st.sidebar.radio(
-        "Quality mode",
+        "Quality",
         ("Fast", "High quality"),
         horizontal=True,
         key="quality_mode",
@@ -83,38 +268,33 @@ def main():
     st.sidebar.markdown("---")
 
     # 2) Projects section
-    st.sidebar.markdown("### Projects")
+    st.sidebar.markdown("#### Projects")
 
-    # + New project button
-    if st.sidebar.button("➕ New project"):
-        # You can also prevent multiple empty projects if you want:
-        # has_blank_project = any(len(p.get("discussion_ids", [])) == 0 for p in projects.values())
-        # if not has_blank_project:
+    if st.sidebar.button("➕ New project", use_container_width=True):
         start_project_creation()
         st.rerun()
 
     project_ids = list(projects.keys())
 
-    # Simple list of project names (click = go to project page)
     for proj_id in project_ids:
         proj_name = projects[proj_id]["name"]
-        if st.sidebar.button(proj_name, key=f"proj_btn_{proj_id}"):
+        if st.sidebar.button(f"📁 {proj_name}", key=f"proj_btn_{proj_id}", use_container_width=True):
             set_current_project(proj_id)
-            # Going to project mode, but not yet inside a discussion
             set_current_discussion(None)
             st.rerun()
 
-    # If we are inside a project discussion, show its discussions under the project
+    # If we are inside a project discussion, show its discussions nested
     if current_project_id is not None and current_discussion_id is not None:
-        # Check that the current discussion belongs to this project
         disc = discussions.get(current_discussion_id)
         if disc and disc.get("project_id") == current_project_id:
-            st.sidebar.markdown(f"**{projects[current_project_id]['name']} – discussions**")
+            st.sidebar.markdown(
+                f"**{projects[current_project_id]['name']} – discussions**"
+            )
             proj_disc_ids = get_project_discussion_ids(current_project_id)
 
             if proj_disc_ids:
                 selected_proj_disc = st.sidebar.radio(
-                    "Select a discussion",
+                    "Select",
                     options=proj_disc_ids,
                     index=proj_disc_ids.index(current_discussion_id),
                     format_func=lambda did: discussions[did]["name"],
@@ -127,90 +307,146 @@ def main():
     st.sidebar.markdown("---")
 
     # 3) Default discussions section (always visible)
-    st.sidebar.markdown("### Discussions")
+    st.sidebar.markdown("#### Discussions")
 
-    # + New default discussion (not in any project)
-    if st.sidebar.button("➕ New discussion"):
-        # Optional: only allow one empty default discussion at a time
+    if st.sidebar.button("➕ New discussion", use_container_width=True):
         global_ids = get_global_discussion_ids()
         has_blank_global = any(
             discussions[d]["image_bytes"] is None for d in global_ids
         )
         if not has_blank_global:
             create_new_discussion(project_id=None)
-            # default mode: leaving project context
             set_current_project(None)
             st.rerun()
 
     global_ids = get_global_discussion_ids()
     if global_ids:
         selected_global_disc = st.sidebar.radio(
-            "Select a discussion",
+            "Select",
             options=global_ids,
             format_func=lambda did: discussions[did]["name"],
             key="global_disc_selector",
         )
 
-        # Track last selected global discussion to detect real user changes
         prev_selected = st.session_state.get("last_global_disc_selected")
-
         if prev_selected is None:
-            # First time we just record, no navigation
             st.session_state["last_global_disc_selected"] = selected_global_disc
         elif selected_global_disc != prev_selected:
-            # User really changed the selection -> go to default mode
             st.session_state["last_global_disc_selected"] = selected_global_disc
             set_current_project(None)
             set_current_discussion(selected_global_disc)
-            st.experimental_rerun()
-
+            st.rerun()
 
     # ---------------------------------------
-    # MAIN AREA
+    # MAIN AREA LOGIC
     # ---------------------------------------
-    # Refresh local vars after any possible rerun request
     projects = get_projects()
     discussions = get_discussions()
     current_project_id = get_current_project_id()
     current_discussion_id = get_current_discussion_id()
     disc_id, disc = get_current_discussion()
 
-    # Case A: In "project mode" with NO specific discussion selected
+    # Case A: project mode, no specific discussion selected
     if current_project_id is not None and current_discussion_id is None:
         proj = projects[current_project_id]
-        st.subheader(proj["name"])
-        st.write("This project contains the following discussions:")
+
+        st.markdown(
+            f"""
+            <div class="card">
+              <div class="breadcrumb">
+                <strong>Project</strong> &nbsp;›&nbsp; <strong>{proj["name"]}</strong>
+              </div>
+              <p class="subtitle">Browse existing discussions in this project or spawn a new one.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
         proj_disc_ids = get_project_discussion_ids(current_project_id)
 
         if proj_disc_ids:
+            st.markdown("#### Discussions in this project")
             for d_id in proj_disc_ids:
                 d = discussions[d_id]
-                if st.button(d["name"], key=f"proj_disc_btn_{d_id}"):
-                    # Enter this discussion
-                    set_current_discussion(d_id)
-                    st.rerun()
+                with st.container():
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        st.markdown(f"**{d['name']}**")
+                        if d["image_bytes"] is None:
+                            st.caption("Awaiting first image upload.")
+                        else:
+                            st.caption("Image uploaded · style configurable")
+                    with col2:
+                        if st.button("Open", key=f"proj_disc_btn_{d_id}", use_container_width=True):
+                            set_current_discussion(d_id)
+                            st.rerun()
         else:
-            st.info("This project has no discussions yet.")
+            st.markdown(
+                """
+                <div class="card-muted">
+                  <span class="subtitle">This project has no discussions yet. Create one to start experimenting with styles.</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
-        # Button to create first/new discussion in this project
-        if st.button("➕ New discussion in this project"):
+        st.markdown("---")
+        if st.button("➕ New discussion in this project", use_container_width=True):
             create_new_discussion(project_id=current_project_id)
             st.rerun()
 
         return
 
-    # Case B: No discussion at all (shouldn't really happen thanks to init, but safe)
+    # Case B: safety – no discussion at all
     if disc is None:
-        st.info("No discussion selected. Create or select one from the sidebar.")
+        st.markdown(
+            """
+            <div class="card-muted">
+              <span class="subtitle">No active discussion. Create or select one from the sidebar.</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         return
 
-    # From here on, we are inside a discussion (default or project)
-    st.subheader(disc["name"])
+    # ---------------------------------------
+    # Inside a discussion (default or project)
+    # ---------------------------------------
+
+    breadcrumb_parts = []
+    if current_project_id is not None:
+        breadcrumb_parts.append(projects[current_project_id]["name"])
+    breadcrumb_parts.append(disc["name"])
+    breadcrumb_html = " &nbsp;›&nbsp; ".join(
+        f"<strong>{part}</strong>" for part in breadcrumb_parts
+    )
+
+    st.markdown(
+        f"""
+        <div class="card">
+          <div style="display:flex;flex-direction:column;gap:0.45rem;">
+            <div class="breadcrumb">{breadcrumb_html}</div>
+            <div>
+              <span class="pill"><span class="dot"></span><span>{quality_mode} mode</span></span>
+              <span class="subtitle" style="margin-left:0.5rem;">Upload an image (if not done yet) and configure the style pipeline.</span>
+            </div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     # ---- Upload handling ----
     if disc["image_bytes"] is None:
-        st.write("Start this discussion by uploading an image.")
+        st.markdown(
+            """
+            <div class="card-muted">
+              <span class="subtitle">This discussion doesn't have an image yet. Upload one to unlock styling controls.</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
         uploaded_file = st.file_uploader(
             "Upload an image (PNG/JPG)",
             type=["png", "jpg", "jpeg"],
@@ -237,11 +473,24 @@ def main():
 
         return
 
-    # If we reach here, this discussion HAS an image
+    # Discussion has an image
     image_bytes = disc["image_bytes"]
 
-    # ---- Style selection ----
-    st.markdown("### Style")
+    # ---- Style controls ----
+    with st.container():
+        st.markdown(
+            """
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;">
+                <div>
+                  <div class="preview-title">Style configuration</div>
+                  <div class="subtitle">Choose a style and fine-tune its parameters.</div>
+                </div>
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     style_options = [
         "None",
@@ -254,11 +503,10 @@ def main():
         "Vivid Colors",
         "Vintage",
     ]
-
     current_style_index = style_options.index(disc.get("filter_label", "None"))
 
     filter_label = st.selectbox(
-        "Choose a style",
+        "Style",
         options=style_options,
         index=current_style_index,
         key=f"style_{disc_id}",
@@ -268,40 +516,44 @@ def main():
     painting_detail = disc.get("painting_detail", 60)
     painting_color_smooth = disc.get("painting_color_smooth", 0.6)
 
-    if filter_label == "Blur":
-        blur_strength = st.slider(
-            "Blur intensity",
-            min_value=3,
-            max_value=31,
-            value=blur_strength,
-            step=2,
-            help="Higher values = stronger blur.",
-            key=f"blur_{disc_id}",
-        )
-    elif filter_label == "Painting":
-        painting_detail = st.slider(
-            "Painting detail",
-            min_value=10,
-            max_value=200,
-            value=painting_detail,
-            step=10,
-            help="Higher values = a stronger painting effect.",
-            key=f"paint_detail_{disc_id}",
-        )
-        painting_color_smooth = st.slider(
-            "Color smoothing",
-            min_value=0.1,
-            max_value=1.0,
-            value=painting_color_smooth,
-            step=0.1,
-            help="Higher values = smoother colors.",
-            key=f"paint_color_{disc_id}",
-        )
+    col_controls = st.columns(2)
+    with col_controls[0]:
+        if filter_label == "Blur":
+            blur_strength = st.slider(
+                "Blur intensity",
+                min_value=3,
+                max_value=31,
+                value=blur_strength,
+                step=2,
+                help="Higher values = stronger blur.",
+                key=f"blur_{disc_id}",
+            )
+        elif filter_label == "Painting":
+            painting_detail = st.slider(
+                "Painting detail",
+                min_value=10,
+                max_value=200,
+                value=painting_detail,
+                step=10,
+                help="Higher values = a stronger painting effect.",
+                key=f"paint_detail_{disc_id}",
+            )
+    with col_controls[1]:
+        if filter_label == "Painting":
+            painting_color_smooth = st.slider(
+                "Color smoothing",
+                min_value=0.1,
+                max_value=1.0,
+                value=painting_color_smooth,
+                step=0.1,
+                help="Higher values = smoother colors.",
+                key=f"paint_color_{disc_id}",
+            )
 
     # ---- Image processing ----
     max_dim = 600 if quality_mode == "Fast" else 1200
 
-    with st.spinner("Processing image..."):
+    with st.spinner("Running style pipeline..."):
         original_resized, styled_image = process_image(
             image_bytes=image_bytes,
             filter_label=filter_label,
@@ -319,24 +571,23 @@ def main():
     discussions[disc_id] = disc
     st.session_state["discussions"] = discussions
 
-    # ---- Before vs After ----
+    # ---- Preview ----
+    st.markdown("#### Preview")
+
     col1, col2 = st.columns(2)
-
     with col1:
-        st.subheader("Before")
+        st.markdown("**Before**")
         st.image(original_resized, use_container_width=True)
-
     with col2:
-        st.subheader("After")
+        st.markdown("**After**")
         st.image(styled_image, use_container_width=True)
 
     st.caption(
-        f"Mode: {quality_mode}. Images are processed up to {max_dim}px on the longest side."
+        f"Rendering mode: {quality_mode}. Images are processed up to {max_dim}px on the longest side."
     )
 
     # ---- Download ----
     st.markdown("---")
-    st.subheader("Download stylized image")
 
     out_buf = io.BytesIO()
     styled_image.save(out_buf, format="PNG")
@@ -346,8 +597,18 @@ def main():
     style_suffix = filter_label.lower().replace(" ", "-")
     download_name = f"{orig_name}_{style_suffix}.png"
 
+    st.markdown(
+        f"""
+        <div class="download-box">
+          <span>Export the styled image for this discussion.</span>
+          <span>Output: <code>{download_name}</code></span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     st.download_button(
-        label=f"📥 Download ({download_name})",
+        label="📥 Download styled image",
         data=out_bytes,
         file_name=download_name,
         mime="image/png",
